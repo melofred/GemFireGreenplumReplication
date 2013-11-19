@@ -33,6 +33,36 @@ public class WriteToGPAsyncEventListener extends ConfiguredAsyncEventListener {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	protected void startInsertThread(final String table) {
+		// this thread will block until the pipes are flushed
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+
+				StringBuilder sql = new StringBuilder();
+				sql.append("INSERT INTO ").append(table).append(" ");
+				sql.append("SELECT * FROM ").append(table).append("_in_").append(hostname).append(";");
+				Connection conn = null;
+				try {
+					conn = helper.getGPConnectionSite2();
+					int modifiedRows = conn.createStatement().executeUpdate(sql.toString());
+					System.out.println("INSERTED "+modifiedRows+" ROWS");
+					
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}					
+				finally {
+					if (conn!=null) try {conn.close();}catch(Exception e) {}
+				}
+			}
+		};
+		
+		t.start();
+		
+		Thread.yield();
+		
+	}
 
 	@Override
 	public boolean processEvents(List<AsyncEvent> events) {
@@ -54,33 +84,7 @@ public class WriteToGPAsyncEventListener extends ConfiguredAsyncEventListener {
 
 				else {
 
-					// this thread will block until the pipes are flushed
-					Thread t = new Thread() {
-						@Override
-						public void run() {
-
-							StringBuilder sql = new StringBuilder();
-							sql.append("INSERT INTO ").append(table).append(" ");
-							sql.append("SELECT * FROM ").append(table).append("_in_").append(hostname).append(";");
-							Connection conn = null;
-							try {
-								conn = helper.getGPConnectionSite2();
-								int modifiedRows = conn.createStatement().executeUpdate(sql.toString());
-								System.out.println("INSERTED "+modifiedRows+" ROWS");
-								
-							} catch (SQLException e) {
-								e.printStackTrace();
-							}					
-							finally {
-								if (conn!=null) try {conn.close();}catch(Exception e) {}
-							}
-						}
-					};
-					
-					t.start();
-					
-					Thread.yield();
-					
+					startInsertThread(table);
 					pipesMap.put(table, new PrintWriter(new BufferedWriter(new FileWriter(file)),false));
 					
 					
@@ -90,14 +94,44 @@ public class WriteToGPAsyncEventListener extends ConfiguredAsyncEventListener {
 
 			for (AsyncEvent event:events) {
 				
-				Object transactionId = event.getKey();
-				
+				String transactionId = (String)event.getKey();
 				String rowValue = (String)event.getDeserializedValue();
+	
+				if (transactionId.startsWith("_AO_DDL_")){
+					/* Flush current contents, apply DDL and start another "process events" */
+					for (final String table:tables) {
+						pipesMap.get(table).flush();
+						pipesMap.get(table).close();						
+					}
+					
+					Connection gpConn = helper.getGPConnectionSite2();
+					try {
+						// remove the start and end quotes;
+						rowValue = rowValue.substring(1,rowValue.length()-1);
+						gpConn.createStatement().execute(rowValue);
+						gpConn.commit();
+					}
+					catch(Exception e) {
+						System.out.println("Exception trying to apply AO DDL: "+rowValue);
+						e.printStackTrace();
+					}
+					finally {
+						try {gpConn.close();}catch(Exception e) {}
+						for (final String table:tables) {
+							startInsertThread(table);
+							pipesMap.put(table, new PrintWriter(new BufferedWriter(new FileWriter(new File(configurator.getGPFDistLoadPath(),table))),false));						
+						}
+
+					}
+					continue;
+				}
+				
 				StringBuffer buff = new StringBuffer(rowValue);
 				
 				int separator = buff.indexOf("|");
 				String tableName = buff.substring(0, separator); 
-				String line = buff.substring(separator+1);
+				String line = buff.substring(separator+1);		
+				
 				
 				pipesMap.get(tableName).write(line);				
 				pipesMap.get(tableName).println();			

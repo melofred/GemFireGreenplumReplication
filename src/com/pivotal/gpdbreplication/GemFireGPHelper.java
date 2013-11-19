@@ -22,7 +22,7 @@ public class GemFireGPHelper {
 	static ClientCacheFactory site2Factory;
 	static ClientCache site2;
 	
-	final static String GP_TABLES_OFFSET_REGION_NAME="GPTablesRowOffset";
+	public final static String GP_TABLES_OFFSET_REGION_NAME="GPTablesRowOffset";
 	
 	
 	static{
@@ -52,14 +52,8 @@ public class GemFireGPHelper {
 	}
 	
 
-	
-	public void resetDefaultLimitAndOffset(String table) {
-
-		ClientCache cache = getGemFireSite1Connection();
-		Region<String,Long> tablesOffsetRegion = cache.getRegion(GP_TABLES_OFFSET_REGION_NAME);
-		tablesOffsetRegion.put(table, 0l);
 		
-	}	
+	
 	public Long getOffset(String table) {
 		
 		ClientCache cache = getGemFireSite1Connection();

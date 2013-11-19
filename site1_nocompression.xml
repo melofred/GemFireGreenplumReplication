@@ -8,7 +8,7 @@
    		remote-distributed-system-id="2">
 <!-- 
  	 	<gateway-transport-filter>
-	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	      <class-name>com.pivotal.gpdbreplication.transport.CompressingTransportFilter</class-name>
 	    </gateway-transport-filter>
 -->   		
    	</gateway-sender> 	
@@ -17,7 +17,7 @@
    		remote-distributed-system-id="2">
 <!--
 	 	<gateway-transport-filter>
-	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	      <class-name>com.pivotal.gpdbreplication.transport.CompressingTransportFilter</class-name>
 	    </gateway-transport-filter>
 -->
    	</gateway-sender> 	
@@ -29,7 +29,7 @@
    		>
 <!--
  <gateway-transport-filter>
-	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	      <class-name>com.pivotal.gpdbreplication.transport.CompressingTransportFilter</class-name>
 	    </gateway-transport-filter>
   --> 		
    	</gateway-sender> 	

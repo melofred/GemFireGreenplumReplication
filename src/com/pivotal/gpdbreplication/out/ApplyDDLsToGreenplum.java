@@ -9,7 +9,7 @@ import com.gemstone.gemfire.cache.asyncqueue.AsyncEvent;
 public class ApplyDDLsToGreenplum extends ConfiguredAsyncEventListener {
 
 
-
+	
 	@Override
 	public boolean processEvents(List<AsyncEvent> events) {
 		
@@ -24,6 +24,7 @@ public class ApplyDDLsToGreenplum extends ConfiguredAsyncEventListener {
 				// remove the start and ending quotes
 				commandString = commandString.substring(1,commandString.length()-1);
 						
+				System.out.println("PREPARING TO EXECUTE "+commandString);
 				Statement stmt = conn.createStatement();
 				stmt.executeUpdate(commandString);
 				

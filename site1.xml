@@ -7,7 +7,7 @@
 	<gateway-sender id="DDL_DML_Sender" parallel="false" 
    		remote-distributed-system-id="2">
  	 	<gateway-transport-filter>
-	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	      <class-name>com.pivotal.gpdbreplication.transport.CompressingTransportFilter</class-name>
 	    </gateway-transport-filter>
    	</gateway-sender> 	
 	
@@ -18,7 +18,7 @@
    		disk-synchronous="false"
    		enable-persistence="true">
 	 	<gateway-transport-filter>
-	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	      <class-name>com.pivotal.gpdbreplication.transport.CompressingTransportFilter</class-name>
 	    </gateway-transport-filter>
    	</gateway-sender> 	
 
@@ -28,7 +28,7 @@
    		batch-time-interval="500"
    		>
  <gateway-transport-filter>
-	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	      <class-name>com.pivotal.gpdbreplication.transport.CompressingTransportFilter</class-name>
 	    </gateway-transport-filter>
    	</gateway-sender> 	
  
@@ -109,11 +109,9 @@
 			data-policy="partition" 
 			statistics-enabled="true"
 			persist-backup="false" 
-			enable-gateway="true">
-<!--
+			enable-gateway="true"
 			gateway-sender-ids="DDL_DML_Sender"
 			>
--->
 			<partition-attributes redundant-copies="1" colocated-with="pending_statements"/>
 		        <eviction-attributes>
 		          <lru-memory-size maximum="10" action="local-destroy"> 
