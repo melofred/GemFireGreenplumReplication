@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+ xmlns:task="http://www.springframework.org/schema/task" xmlns:context="http://www.springframework.org/schema/context"
+ xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+ xmlns:int="http://www.springframework.org/schema/integration"
+ xmlns:file="http://www.springframework.org/schema/integration/file"
+ xmlns:util="http://www.springframework.org/schema/util"
+ xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+ http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+ http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+ http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+ http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+ http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-3.0.xsd
+ http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file-3.0.xsd
+ http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-2.0.xsd
+ http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
+ 
+ 
+ <context:property-placeholder location="classpath:replication.properties" />
+ <context:annotation-config />
+ 	
+	<bean id="LogFileListener"
+	    class="com.pivotal.gpdbreplication.gplog.LogFileTailListener">
+	   <property name="databaseName" value="pivotal"></property>
+	</bean>
+ 
+	<bean id="LogFilePolling"
+	    class="com.pivotal.gpdbreplication.gplog.LogFilePoller" scope="singleton"
+	    init-method="startPolling" >
+	    <constructor-arg name="dir" value="${sqlfgp.masterpglog.file.path}" />
+	    <constructor-arg name="delay" value="${sqlfgp.masterpglog.file.polling.delay}" />
+	    <constructor-arg name="listener" ref="LogFileListener" />
+	</bean>
+  
+    
+	<bean id="LoadFromGPAppendOnlyTables"
+	    class="com.pivotal.gpdbreplication.LoadFromGPAppendOnlyTables">
+	</bean>
+  	
+ 
+ 	<task:scheduler id="scheduler" pool-size="1" />
+	<task:scheduled-tasks scheduler="scheduler">
+	    <task:scheduled ref="LoadFromGPAppendOnlyTables" method="loadFromExternalTable" 
+	    fixed-rate="${sqlfgp.append_only_tables.polling.delay}"/>
+	</task:scheduled-tasks>
+ 	
+ <!-- INTEGRATION BEANS -->
+ <!-- 
+ <bean id="PgLogInputFileHandler"
+  class="com.pivotal.sqlfire.greenplum.PgLogInputFileHandler">
+  <constructor-arg value="${sqlfgp.masterpglog.path}" />
+  <constructor-arg value="${sqlfgp.masterpglog.regex}" />
+ </bean>
+  
+ <int:channel id="fileIn"></int:channel>
+ 
+ <bean id="compositeFilter"
+    class="org.springframework.integration.file.filters.CompositeFileListFilter">
+    <constructor-arg>
+        <list>
+            <bean class="o.s.i.file.filters.AcceptOnceFileListFilter"/>
+            <bean class="o.s.i.file.filters.RegexPatternFileListFilter">
+                <constructor-arg value="^test.*$"/>
+            </bean>
+        </list>
+    </constructor-arg>
+</bean>
+  -->
+ <!-- 
+ <file:inbound-channel-adapter id="inputChannelAdapter"
+  channel="fileIn" directory="${sqlfgp.file.path}"
+  prevent-duplicates="false" filename-regex="${sqlfgp.file.regex}"
+  scanner="customDirectoryScanner">
+ 
+  <int:poller id="poller" fixed-delay="1000" />
+ </file:inbound-channel-adapter>
+ 
+ <file:tail-inbound-channel-adapter id="apache"
+	channel="fileIn"
+	task-executor="exec"
+	file="/tmp/bar" >
+	
+</file:tail-inbound-channel-adapter>
+ -->
+ 
+<!--  
+<bean id="LogFileTailingAdapter" 
+		class="com.pivotal.sqlfire.greenplum.inbound.LogFileTailingMessageProducer"
+		>
+	<property name="dir" value="/gpmaster/gpsne-1/pg_log/"/>
+	<property name="pollingDelay" value="1000"></property>
+	
+</bean> 
+ -->
+ 
+ <!-- 
+<int:channel id="inputChannel"></int:channel>
+ 
+<bean id="LogFileTailingAdapterFactory"
+	class="com.pivotal.sqlfire.greenplum.inbound.LogFileTailInboundChannelAdapterFactoryBean"
+		>
+	<constructor-arg name="dir" value="/gpmaster/gpsne-1/pg_log/"/>
+	<constructor-arg name="channel" ref="inputChannel"></constructor-arg>
+	<property name="taskExecutor" value="exec"/>
+	
+</bean> 
+ -->
+<!-- 
+<bean id="LogFileTailingAdapter" 
+		factory-bean="LogFileTailingAdapterFactory"
+		factory-method="build"
+		>
+</bean> 
+  -->
+  
+<!-- 
+ 
+<int:inbound-channel-adapter channel="inputChannel" 
+		ref="LogFileTailingAdapterFactory" method="exec"
+		 >
+  <int:poller fixed-delay="1000" />
+</int:inbound-channel-adapter>
+  
+  
+-->  
+ <!-- 
+ <bean id="pollableFileSource"
+    class="org.springframework.integration.file.FileReadingMessageSource"
+    p:inputDirectory="${input.directory}"
+    p:filter-ref="customFilterBean"/>
+ 
+ <bean id="pollableFileSource"
+    class="org.springframework.integration.file.FileReadingMessageSource"
+    p:inputDirectory="${input.directory}"
+    p:filter-ref="compositeFilter"/>
+<bean id="compositeFilter"
+    class="org.springframework.integration.file.filters.CompositeFileListFilter">
+    <constructor-arg>
+        <list>
+            <bean class="o.s.i.file.filters.AcceptOnceFileListFilter"/>
+            <bean class="o.s.i.file.filters.RegexPatternFileListFilter">
+                <constructor-arg value="^test.*$"/>
+            </bean>
+        </list>
+    </constructor-arg>
+</bean>
+ 
+  -->
+ <!-- 
+ <int:service-activator id="inputFileServiceActivator"
+  input-channel="businessRequestChannel" method="processFile" ref="PgLogInputFileHandler"
+  output-channel="out" />
+ 
+ <int:channel id="out">
+ 	
+ </int:channel>
+    -->
+</beans> 

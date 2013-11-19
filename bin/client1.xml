@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE client-cache PUBLIC
+        "-//GemStone Systems, Inc.//GemFire Declarative Caching 6.5//EN"
+        "http://www.gemstone.com/dtd/cache6_5.dtd">
+
+<client-cache>
+	<pool name="ClientPool" max-connections="-1"
+                pr-single-hop-enabled="true"
+                >
+                <locator host="mdw" port="55221" />
+    </pool> 
+    
+	<region name="setup_commands" refid="PROXY"/>
+ 	<region name="GPTablesRowLimit" refid="PROXY"/>
+ 	<region name="GPTablesRowOffset" refid="PROXY"/>
+	<region name="AO_rows" refid="PROXY"/>
+	<region name="pending_statements" refid="PROXY"/>
+	<region name="error_statements" refid="PROXY"/>
+	<region name="internal_transactions" refid="PROXY"/>
+    
+    
+</client-cache>

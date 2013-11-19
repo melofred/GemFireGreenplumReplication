@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<!DOCTYPE cache PUBLIC 
+"-//GemStone Systems, Inc.//GemFire Declarative Caching 7.0//EN" 
+"http://www.gemstone.com/dtd/cache7_0.dtd">
+<cache>
+
+	<gateway-sender id="DDL_DML_Sender" parallel="false" 
+   		remote-distributed-system-id="2">
+ 	 	<gateway-transport-filter>
+	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	    </gateway-transport-filter>
+   	</gateway-sender> 	
+	
+	<gateway-sender id="AO_Sender" parallel="true"  
+   		remote-distributed-system-id="2"
+   		batch-size="100000"
+   		batch-time-interval="60000"
+   		disk-synchronous="false"
+   		enable-persistence="true">
+	 	<gateway-transport-filter>
+	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	    </gateway-transport-filter>
+   	</gateway-sender> 	
+
+	<gateway-sender id="URGENT_REQUESTS_Sender" parallel="false" 
+   		remote-distributed-system-id="2"
+   		batch-size="1"
+   		batch-time-interval="500"
+   		>
+ <gateway-transport-filter>
+	      <class-name>com.pivotal.gpdbreplication.in.CompressingTransportFilter</class-name>
+	    </gateway-transport-filter>
+   	</gateway-sender> 	
+ 
+
+
+	<async-event-queue id="PendingStatementsQueue" parallel="false">
+      <async-event-listener>
+         <class-name>com.pivotal.gpdbreplication.gplog.LogFileEventsAsyncListener</class-name>
+      </async-event-listener>
+	</async-event-queue>
+
+	<pdx persistent="true"/>
+ 	
+ 	<region name="GPTablesRowLimit">
+		<region-attributes 
+			data-policy="replicate" 
+			statistics-enabled="true"
+			persist-backup="false" >
+	
+		</region-attributes>
+	</region>
+	
+ 	<region name="GPTablesRowOffset">
+		<region-attributes 
+			data-policy="persistent-replicate" 
+			statistics-enabled="true"
+			 >
+
+		</region-attributes>
+	</region>	
+
+ 	<region name="AO_rows">
+		<region-attributes 
+			data-policy="partition" 
+			persist-backup="false" 
+			concurrency-level="30"
+			enable-gateway="true"
+			gateway-sender-ids="AO_Sender"
+			>
+			<partition-attributes redundant-copies="1"/>
+			<eviction-attributes> 
+    				<lru-memory-size maximum="80" action="local-destroy"> 
+                                </lru-memory-size> 
+                        </eviction-attributes> 			
+		</region-attributes>
+	</region>	
+ 	
+	<region name="pending_statements">
+		<region-attributes 
+			data-policy="partition" 
+			statistics-enabled="true"
+			persist-backup="false" 
+			async-event-queue-ids="PendingStatementsQueue"
+			>
+			<partition-attributes redundant-copies="1"/>
+		        <eviction-attributes>
+		          <lru-memory-size maximum="10" action="local-destroy"> 
+		          </lru-memory-size>
+			</eviction-attributes>
+		</region-attributes>
+	</region>		
+	<region name="error_statements">
+		<region-attributes 
+			data-policy="partition" 
+			statistics-enabled="true"
+			persist-backup="false" 
+			>
+			<partition-attributes redundant-copies="1" colocated-with="pending_statements"/>
+		        <eviction-attributes>
+		          <lru-memory-size maximum="10" action="local-destroy"> 
+		          </lru-memory-size>
+			</eviction-attributes>
+
+		</region-attributes>
+	</region>			
+	<region name="ready_statements">
+		<region-attributes 
+			data-policy="partition" 
+			statistics-enabled="true"
+			persist-backup="false" 
+			enable-gateway="true">
+<!--
+			gateway-sender-ids="DDL_DML_Sender"
+			>
+-->
+			<partition-attributes redundant-copies="1" colocated-with="pending_statements"/>
+		        <eviction-attributes>
+		          <lru-memory-size maximum="10" action="local-destroy"> 
+		          </lru-memory-size>
+			</eviction-attributes>
+		</region-attributes>
+	</region>		
+	
+	<region name="internal_transactions">
+		<region-attributes 
+			data-policy="persistent-partition" 
+			statistics-enabled="true"
+			persist-backup="false" 
+			>
+			<partition-attributes redundant-copies="1"/>
+		</region-attributes>
+	</region>			
+	
+	<region name="setup_commands">
+		<region-attributes 
+			data-policy="empty" 
+			gateway-sender-ids="URGENT_REQUESTS_Sender"
+			/>
+	</region>				
+	
+</cache>
